@@ -18,48 +18,80 @@ import sqlite3
 import pandas
 
 class schemaManager():
-    def __init__(self):
+    def __init__(self,database_path):
+        self.schema = {}
         self.table_names = []
         try:
-            with sqlite3.connect("data/database.db") as self.conn: #opens connection with existing database or creates new one if not found
+            with sqlite3.connect(database_path) as self.conn: #opens connection with existing database or creates new one if not found
+                print(f"connected to database at '{database_path}'")
                 self.cursor = self.conn.cursor()
         except sqlite3.OperationalError as e:
             print("Failed to open database:", e)
 
+    # def check(data) -> :
+    #     checks if the incoming data structure matches a table currently in the db 
+    #     i = 0
+    #     for name in self.table_names:
+    #         view_table = "PRAGMA table_info(" + name + ")"
+    #         table = self.cursor.execute(view_table).fetchall()
+    #         if table[i+1][1] == data.columns[i]
+    #             i += 1
+    #             continue
+
+    # def append_table(self,data):
+
+    #this is create new table, maybe check in the init function and then have a separete function that appends
     def add_table(self, data, name):
         # takes in a pandas dataframe
         if isinstance(data, pandas.DataFrame):
             self.table_names.append(name)
+            self.schema.append(name)
             print(data)
-            print(data.dtypes.get("last_name"))
 
-            create_table = "CREATE TABLE IF NOT EXISTS " + name + " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            create_table = f"CREATE TABLE IF NOT EXISTS {name} (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            populate_table = f"INSERT INTO {name} ("
 
             num_columns = data.columns.size # data.columns is a pandas.index object, get its length with '.size'
             num_loops = 0
+            values = []
             for column in data.columns:
                 num_loops+=1
+                populate_table += column
                 if str(data.dtypes.get(column)) == "str":
                     data_type = "TEXT"
                 elif str (data.dtypes.get(column)) == "int64":
                     data_type = "INTEGER"
                 create_table = create_table + column + " " + data_type
+                values.append(column)
                 if num_loops != num_columns:
                     create_table += ","
+                    populate_table += ","
             create_table += ");"
             print(create_table)
             self.cursor.execute(create_table)
             self.conn.commit()
+            schema[name] = values
             print("table created")
-
+            num_entries = data.index.size
+            populate_table += ') VALUES '
+            num_loops = 0
+            for index in data.index: # this will loopthe number of times that entries in the table
+                row = data.loc[index].to_list() # row is a list
+                row = "','".join(str(item) for item in row)
+                populate_table += f" ('{row}')"
+                num_loops += 1
+                if num_loops != num_entries:
+                    populate_table += ","
+            print(populate_table)
+            self.cursor.execute(populate_table)
+            self.conn.commit()            
 
     def view_tables(self):
         for name in self.table_names:
             view_table = "PRAGMA table_info(" + name + ")"
             table = self.cursor.execute(view_table).fetchall()
             if table:
-                print(f"Table {name} exists")
-            else:
-                print(f"Table {name} does not exist")
+                print(f"Table {name} exists: {table}")
+                print(f"column 1 {table[1][1]}")
      
         

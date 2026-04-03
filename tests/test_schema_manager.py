@@ -4,9 +4,9 @@ import pandas as pd
 def test_add_table():
     ''' this unit test will add a fake table to the db and verify it has been added '''
     people_df = pd.DataFrame({
-    "first_name": ["Alice", "Bob"],
-    "last_name": ["Johnson", "Smith"],
-    "age": [20, 22]
+    "first_name": ["Alice", "Bob","Clark"],
+    "last_name": ["Johnson", "Smith","Bob"],
+    "age": [20, 22, 40]
     })
     soccer_df = pd.DataFrame({
     "player": ["messi", "ronaldo"],
@@ -14,7 +14,7 @@ def test_add_table():
     "goals": [900, 965]
     })
     fake_df = 1
-    test_manager = schemaManager()
+    test_manager = schemaManager("data/database.db")
     # add 2 tables that have pandas df
     test_manager.add_table(people_df,"people")
     test_manager.add_table(soccer_df,"players")
