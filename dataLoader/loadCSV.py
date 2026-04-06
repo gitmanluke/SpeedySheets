@@ -13,6 +13,9 @@ class dataLoader():
         self.schemaManager = schemaManager
         print("schema manager set")
 
-    def send_to_manager(self, data_path, table_name):
+    def send_to_manager(self, data_path, database_path, table_name):
+        print(f"Sending {data_path} to manager")
+        print(f"Database path: {database_path}")
+        print(f"Table name: {table_name}")
         data = pandas.read_csv(data_path)
-        self.schemaManager.add_table(data_path, data, table_name)
+        self.schemaManager.add_table(database_path, data, table_name)

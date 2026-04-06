@@ -9,6 +9,7 @@
 #status: invalid row, invalid column, unable to update data ?
 
 import sqlite3
+import re
 from queryService.DBvalidator import DBvalidator
 from schemaManager.schemaManager import schemaManager
 from LLMInterface.nl_to_sql import LLM_adapter
@@ -31,24 +32,33 @@ class handleQuery():
         if (self.database_validator.valid_query(user_command)):
             self.cursor.execute(user_command)
             answer = str(self.cursor.fetchall())
-            if answer == "generation unavailable":
-                return None
             return answer
         else:
             print("invalid query")
             return None
 
-    def send_to_LLM(self, schemaManager, question) -> str:
-        prompt = self._llm.create_prompt(self.schemaManager.schema, question)
+    def _extract_sql_from_response(self, response: str):
+        if not isinstance(response, str):
+            return None
+        match = re.search(r"```sql\s*(.*?)\s*```", response, flags=re.IGNORECASE | re.DOTALL)
+        if not match:
+            return None
+        sql_query = match.group(1).strip()
+        if not sql_query:
+            return None
+        return sql_query
+
+    def send_to_LLM(self, question) -> str:
+        schema = self.schemaManager.get_schema()
+        prompt = self._llm.create_prompt(schema, question)
         response = self._llm.natural_language_to_sql(prompt)
-        print(response)
-        if (self.database_validator.valid_query(response)):
-            self.cursor.execute(response)
-            answer = str(self.cursor.fetchall())
-            print(answer)
-            return answer
-        else:
+        if response == "generation unavailable":
+            return None
+        sql_query = self._extract_sql_from_response(response)
+        if not sql_query:
             print("invalid query")
             return None
-            # todo: spin back to the LLM again, and get a new prompt maybe it will be good
+        print(sql_query)
+        answer = self.execute_SQL(sql_query)
+        return answer
 

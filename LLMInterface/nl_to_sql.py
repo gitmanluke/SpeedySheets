@@ -18,8 +18,12 @@ class LLM_adapter():
         for this question will be 'SELECT player FROM players WHERE goals > 5'. 
         1. Generate a SQL query that accurately answers the user's question. 
         2. Ensure the SQL is compatible with SQLite syntax. 
-        3. Provide a short comment explaining what the query does. 
-        Output Format: - SQL Query - Explanation
+        3. Return exactly one SQL query wrapped in a fenced sql code block.
+        4. Do not include any explanation or extra text before/after the code block.
+        Output Format:
+        ```sql
+        SELECT ...;
+        ```
         Guidelines:
         > only generate SQL for read only queries, no writes should be allowed
         User Query: {question}

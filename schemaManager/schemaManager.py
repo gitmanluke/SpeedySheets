@@ -19,7 +19,6 @@ import pandas
 
 class schemaManager():
     def __init__(self):
-        self.schema = {}
         self.table_names = []
         self.database_path = None
         self.conn = None
@@ -47,9 +46,9 @@ class schemaManager():
 
     # def append_table(self,data):
 
-    def add_table(self, data_path, data, name):
+    def add_table(self, database_path, data, name):
         try:
-            self.conn = sqlite3.connect(data_path)
+            self.conn = sqlite3.connect(database_path)
             self.cursor = self.conn.cursor()
         except sqlite3.OperationalError as e:
             print("Failed to open database when adding table:", e)
@@ -63,7 +62,6 @@ class schemaManager():
 
             num_columns = data.columns.size # data.columns is a pandas.index object, get its length with '.size'
             num_loops = 0
-            values = []
             for column in data.columns:
                 num_loops+=1
                 populate_table += column
@@ -72,7 +70,6 @@ class schemaManager():
                 elif str (data.dtypes.get(column)) == "int64":
                     data_type = "INTEGER"
                 create_table = create_table + column + " " + data_type
-                values.append(column)
                 if num_loops != num_columns:
                     create_table += ","
                     populate_table += ","
@@ -80,7 +77,6 @@ class schemaManager():
             print(create_table)
             self.cursor.execute(create_table)
             self.conn.commit()
-            self.schema[name] = values
             print("table created")
             num_entries = data.index.size
             populate_table += ') VALUES '
@@ -95,6 +91,24 @@ class schemaManager():
             print(populate_table)
             self.cursor.execute(populate_table)
             self.conn.commit()            
+
+    def get_schema(self):
+        schema = {}
+        if not self.database_path:
+            return schema
+
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                tables = cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+                ).fetchall()
+                for (table_name,) in tables:
+                    columns = cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
+                    schema[table_name] = [column[1] for column in columns]
+        except sqlite3.Error as e:
+            print("Failed to read schema from database:", e)
+        return schema
 
     def view_tables(self):
         for name in self.table_names:
