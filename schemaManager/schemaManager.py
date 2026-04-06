@@ -18,13 +18,20 @@ import sqlite3
 import pandas
 
 class schemaManager():
-    def __init__(self,database_path):
+    def __init__(self):
         self.schema = {}
         self.table_names = []
+        self.database_path = None
+        self.conn = None
+        self.cursor = None
+
+    def set_database(self, database_path):
+        self.database_path = database_path
+        print(f"PATH: {database_path}")
         try:
-            with sqlite3.connect(database_path) as self.conn: #opens connection with existing database or creates new one if not found
-                print(f"connected to database at '{database_path}'")
-                self.cursor = self.conn.cursor()
+            self.conn = sqlite3.connect(database_path)
+            self.cursor = self.conn.cursor()
+            print(f"Schema Manager connected to database at '{database_path}'")
         except sqlite3.OperationalError as e:
             print("Failed to open database:", e)
 
@@ -40,12 +47,15 @@ class schemaManager():
 
     # def append_table(self,data):
 
-    #this is create new table, maybe check in the init function and then have a separete function that appends
-    def add_table(self, data, name):
+    def add_table(self, data_path, data, name):
+        try:
+            self.conn = sqlite3.connect(data_path)
+            self.cursor = self.conn.cursor()
+        except sqlite3.OperationalError as e:
+            print("Failed to open database when adding table:", e)
         # takes in a pandas dataframe
         if isinstance(data, pandas.DataFrame):
             self.table_names.append(name)
-            self.schema.append(name)
             print(data)
 
             create_table = f"CREATE TABLE IF NOT EXISTS {name} (id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -70,7 +80,7 @@ class schemaManager():
             print(create_table)
             self.cursor.execute(create_table)
             self.conn.commit()
-            schema[name] = values
+            self.schema[name] = values
             print("table created")
             num_entries = data.index.size
             populate_table += ') VALUES '

@@ -1,1 +1,0 @@
-from schemaManager.CSVtoSQL import schemaManager
